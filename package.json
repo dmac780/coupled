@@ -1,0 +1,19 @@
+{
+  "name": "coupled",
+  "version": "0.0.1",
+  "description": "Single-file static site build: HTML, CSS, and JS in .c.html files, one Node script, no npm deps for the build itself.",
+  "bin": {
+    "coupled": "c/cli.js"
+  },
+  "scripts": {
+    "build": "node c/cli.js build",
+    "serve": "node c/cli.js serve",
+    "deploy": "npm run build && npm run serve"
+  },
+  "keywords": ["static", "site", "build", "html", "template"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dmac/coupled.git"
+  }
+}

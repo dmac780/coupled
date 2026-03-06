@@ -1,0 +1,15 @@
+# build output
+dist
+
+# source code
+src
+
+# dependencies
+node_modules
+
+# lockfile (optional: remove this line if you want to commit package-lock.json)
+package-lock.json
+
+
+# deploy output
+deploy.js
