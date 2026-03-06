@@ -2,7 +2,7 @@
 
 ## What this is
 
-You put your HTML, CSS, and JS in one file. The build automatically moves styles, scripts, and html to the right places based on your configuration. It’s modular and native-component friendly. Reusable chunks, conditionals, and passing data into mounts. Inspired by atomic build processes, it uses attributes and props to drive the build so each component can keep its markup, styles, and scripts in one file—and you always know how and when they run.
+You put your HTML, CSS, and JS in one file. The build automatically moves styles, scripts, and html to the right places based on your configuration. It’s modular and native-component friendly. Reusable chunks, conditionals, and passing data into mounts. Inspired by atomic build processes, it uses attributes and props to drive the build so each component can keep its markup, styles, and scripts in one file so you always know how and when they run.
 
 You can preload scripts or place them to free the critical path, and you can hydrate on events:
 -  **idle** (when the thread is free)
