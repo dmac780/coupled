@@ -1,5 +1,7 @@
 # Coupled
 
+**[Coupled Documentation](https://dmac780.github.io/coupled-docs/)**
+
 ## What this is
 
 You put your HTML, CSS, and JS in one file. The build automatically moves styles, scripts, and html to the right places based on your configuration. It’s modular and native-component friendly. Reusable chunks, conditionals, and passing data into mounts. Inspired by atomic build processes, it uses attributes and props to drive the build so each component can keep its markup, styles, and scripts in one file so you always know how and when they run.
