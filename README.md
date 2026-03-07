@@ -283,7 +283,7 @@ Build puts `<link rel="modulepreload" href="static/js/main.js">` in the head and
 Add the package, then from your project root (where `src/` lives):
 
 ```bash
-npm install github:dmac/coupled
+npm install github:dmac780/coupled
 npx coupled build
 npx coupled serve
 ```
