@@ -46,6 +46,7 @@ function serve(port) {
     const tryPaths = [filePath];
     if (!path.extname(filePath)) {
       tryPaths.push(path.join(filePath, 'index.html'));
+      tryPaths.push(filePath + '.html');
     }
 
     let found = null;
