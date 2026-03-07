@@ -1,6 +1,6 @@
 {
   "name": "coupled",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Single-file static site build: HTML, CSS, and JS in .c.html files, one Node script, no npm deps for the build itself.",
   "bin": {
     "coupled": "c/cli.js"

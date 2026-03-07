@@ -172,7 +172,7 @@ function renderTemplate(templateSource, meta, mainHtml, mounts, outDir, resolved
       const bundle = typeof item === 'string' ? undefined : item.bundle;
       const key = (bundle != null && bundle !== '') ? bundle : '';
       if (!byBundle[key]) byBundle[key] = [];
-      if (tag === 'script') byBundle[key].push({ content: minify(content), hydrate: item.hydrate });
+      if (tag === 'script') byBundle[key].push({ content: minify(content), hydrate: item.hydrate, extraAttrs: item.extraAttrs });
       else byBundle[key].push(minify(content));
     }
     let out = '';
@@ -203,7 +203,10 @@ function renderTemplate(templateSource, meta, mainHtml, mounts, outDir, resolved
             const c = tag === 'script' ? entry.content : entry;
             const hydrate = tag === 'script' ? entry.hydrate : undefined;
             const code = tag === 'script' && hydrate ? wrapHydrate(c, hydrate) : c;
-            if (code.trim()) out += `<${tag}>${code}</${tag}>`;
+            const attrs = tag === 'script' && entry.extraAttrs && Object.keys(entry.extraAttrs).length
+              ? ' ' + Object.entries(entry.extraAttrs).map(([k, v]) => v === '' ? k : `${k}="${String(v).replace(/"/g, '&quot;')}"`).join(' ')
+              : '';
+            if (code.trim()) out += `<${tag}${attrs}>${code}</${tag}>`;
           }
         } else {
           const combined = tag === 'script' ? contents.map((x) => x.content).join('') : contents.join('');
