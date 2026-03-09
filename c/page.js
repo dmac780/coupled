@@ -3,7 +3,25 @@ const path = require('path');
 const { SRC_DIR, DIST_DIR, ensureDirSync } = require('./paths');
 const { parseFrontmatterAndBody, extractAssetsAndHtml } = require('./parse');
 const { renderTemplate } = require('./template');
-const { getComponentAssets, getComponentHtml } = require('./components');
+const { getComponentAssetsForSlots, getComponentHtml } = require('./components');
+
+
+/**
+ * Find mount slot names referenced in template or page body (e.g. {{MOUNT.hero}} or {{MOUNT.hero:var}}).
+ * @param {string} templateSource - The template source.
+ * @param {string} body - The page body (content).
+ * @returns {Set<string>} - Set of slot names that are used.
+ */
+function getUsedMountSlots(templateSource, body) {
+  const used = new Set();
+  const text = (templateSource || '') + '\n' + (body || '');
+  const re = /\{\{MOUNT\.([a-zA-Z0-9_-]+)(?::[^}]*)?\}\}/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    used.add(m[1]);
+  }
+  return used;
+}
 
 
 /**
@@ -38,7 +56,7 @@ function resolveTemplatePath(cPath, meta) {
 
 
 /**
- * Get the merged mounts for a given page path.
+ * Get the merged mounts for a given page path. Only includes component assets for mounts that are referenced in the page's template or body.
  * @param {string} cPath - The page path to get the merged mounts for.
  * @returns {Record<string, {styles: string[], scripts: string[], html: string[]}>} - The merged mounts.
  */
@@ -50,13 +68,17 @@ function getMergedMountsForPage(cPath) {
     return null;
   }
 
+  const templatePath = resolveTemplatePath(cPath, meta);
+  const templateSource = templatePath && fs.existsSync(templatePath) ? fs.readFileSync(templatePath, 'utf8') : '';
+  const usedSlots = getUsedMountSlots(templateSource, body);
+  const componentAssetsForPage = getComponentAssetsForSlots(usedSlots);
+
   const { mounts } = extractAssetsAndHtml(body, cPath);
-  const COMPONENT_ASSETS = getComponentAssets();
   const COMPONENT_HTML = getComponentHtml();
   const merged = {};
 
-  // Merge the component assets
-  for (const [name, data] of Object.entries(COMPONENT_ASSETS)) {
+  // Merge only the component assets for mounts used on this page
+  for (const [name, data] of Object.entries(componentAssetsForPage)) {
     if (!merged[name]) {
       merged[name] = { styles: [], scripts: [], html: [] };
     }
@@ -74,12 +96,14 @@ function getMergedMountsForPage(cPath) {
     merged[name].html.push(...data.html);
   }
 
-  // Merge the component HTML
-  for (const [name, htmlList] of Object.entries(COMPONENT_HTML)) {
-    if (!merged[name]) {
-      merged[name] = { styles: [], scripts: [], html: [] };
+  // Merge the component HTML only for used slots
+  for (const slot of usedSlots) {
+    const htmlList = COMPONENT_HTML[slot];
+    if (!htmlList) continue;
+    if (!merged[slot]) {
+      merged[slot] = { styles: [], scripts: [], html: [] };
     }
-    merged[name].html.push(...htmlList);
+    merged[slot].html.push(...htmlList);
   }
 
   return merged;
@@ -120,10 +144,11 @@ function processPageFile(cPath, meta, body, resolvedFileBundles) {
 
   const templateSource = fs.readFileSync(templatePath, 'utf8');
   const { mounts: pageMounts, html } = extractAssetsAndHtml(body, cPath);
-  const COMPONENT_ASSETS = getComponentAssets();
+  const usedSlots = getUsedMountSlots(templateSource, body);
+  const componentAssetsForPage = getComponentAssetsForSlots(usedSlots);
   const COMPONENT_HTML = getComponentHtml();
 
-  for (const [name, data] of Object.entries(COMPONENT_ASSETS)) {
+  for (const [name, data] of Object.entries(componentAssetsForPage)) {
     if (!pageMounts[name]) {
       pageMounts[name] = { styles: [], scripts: [], html: [] };
     }
@@ -131,11 +156,13 @@ function processPageFile(cPath, meta, body, resolvedFileBundles) {
     pageMounts[name].scripts.push(...data.scripts);
   }
 
-  for (const [name, htmlList] of Object.entries(COMPONENT_HTML)) {
-    if (!pageMounts[name]) {
-      pageMounts[name] = { styles: [], scripts: [], html: [] };
+  for (const slot of usedSlots) {
+    const htmlList = COMPONENT_HTML[slot];
+    if (!htmlList) continue;
+    if (!pageMounts[slot]) {
+      pageMounts[slot] = { styles: [], scripts: [], html: [] };
     }
-    pageMounts[name].html.push(...htmlList);
+    pageMounts[slot].html.push(...htmlList);
   }
 
   if (meta.MOUNT || meta.mount) {
