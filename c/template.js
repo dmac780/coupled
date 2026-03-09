@@ -100,19 +100,29 @@ function renderTemplate(templateSource, meta, mainHtml, mounts, outDir, resolved
 
   /**
    * Evaluate the given conditional string with the given context.
+   * Supports: {{if var}}, {{if !var}}, {{if var == "value"}}, {{if var != "value"}}, {{if var == otherVar}}.
+   * RHS may be double/single-quoted string or another variable name. Comparison is string-only.
    * @param {string} str - The string to evaluate.
    * @param {Record<string, string>} context - The context to evaluate the string with.
    * @returns {string} - The evaluated string.
    */
   function evalConditionals(str, context) {
-    const innerCondRegex = /\{\{if\s+(!?)(\w+)\}\}((?:(?!\{\{if\s)[\s\S])*?)\{\{\/if\}\}/g;
+    const innerCondRegex = /\{\{if\s+(!?)(\w+)(?:\s*(==|!=)\s*(?:"([^"]*)"|'([^']*)'|(\w+)))?\}\}((?:(?!\{\{if\s)[\s\S])*?)\{\{\/if\}\}/g;
     let out = str;
     let prev = '';
     while (prev !== out) {
       prev = out;
-      out = out.replace(innerCondRegex, (match, negate, varName, content) => {
-        const truthy = context[varName] != null && context[varName] !== '';
-        const showBlock = negate === '!' ? !truthy : truthy;
+      out = out.replace(innerCondRegex, (match, negate, varName, op, dq, sq, rhsVar, content) => {
+        let showBlock;
+        if (op === '==' || op === '!=') {
+          const lhs = String(context[varName] != null ? context[varName] : '');
+          const rhs = dq !== undefined ? dq : (sq !== undefined ? sq : String(context[rhsVar] != null ? context[rhsVar] : ''));
+          showBlock = op === '==' ? lhs === rhs : lhs !== rhs;
+        } else {
+          const truthy = context[varName] != null && context[varName] !== '';
+          showBlock = truthy;
+        }
+        if (negate === '!') showBlock = !showBlock;
         const hasElse = content.includes('{{else}}');
         if (hasElse) {
           const [ifBlock, elseBlock] = content.split('{{else}}');
