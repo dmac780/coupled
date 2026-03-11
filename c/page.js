@@ -6,6 +6,24 @@ const { renderTemplate } = require('./template');
 const { getComponentAssetsForSlots, getComponentHtml } = require('./components');
 
 
+const MOUNT_REF_RE = /\{\{MOUNT\.([a-zA-Z0-9_-]+)(?::[^}]*)?\}\}/g;
+
+/**
+ * Extract mount slot names from a string (e.g. {{MOUNT.hero}} or {{MOUNT.hero:var}}).
+ * @param {string} text - Text to scan.
+ * @returns {Set<string>} - Set of slot names found.
+ */
+function getMountNamesFromText(text) {
+  const used = new Set();
+  if (!text) return used;
+  let m;
+  const re = new RegExp(MOUNT_REF_RE.source, 'g');
+  while ((m = re.exec(text)) !== null) {
+    used.add(m[1]);
+  }
+  return used;
+}
+
 /**
  * Find mount slot names referenced in template or page body (e.g. {{MOUNT.hero}} or {{MOUNT.hero:var}}).
  * @param {string} templateSource - The template source.
@@ -13,14 +31,33 @@ const { getComponentAssetsForSlots, getComponentHtml } = require('./components')
  * @returns {Set<string>} - Set of slot names that are used.
  */
 function getUsedMountSlots(templateSource, body) {
-  const used = new Set();
   const text = (templateSource || '') + '\n' + (body || '');
-  const re = /\{\{MOUNT\.([a-zA-Z0-9_-]+)(?::[^}]*)?\}\}/g;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    used.add(m[1]);
-  }
-  return used;
+  return getMountNamesFromText(text);
+}
+
+/**
+ * Expand usedSlots to include any mount names referenced inside component HTML (nested mounts / "mountception").
+ * @param {Set<string>} usedSlots - Initial set of slot names (from page template + body).
+ * @param {Record<string, string[]>} componentHtml - COMPONENT_HTML from getComponentHtml().
+ * @returns {Set<string>} - Expanded set including nested refs (same Set, mutated).
+ */
+function expandUsedSlots(usedSlots, componentHtml) {
+  let added;
+  do {
+    added = 0;
+    for (const slot of usedSlots) {
+      const htmlList = componentHtml[slot];
+      if (!htmlList) continue;
+      const combined = htmlList.join('\n');
+      for (const name of getMountNamesFromText(combined)) {
+        if (!usedSlots.has(name)) {
+          usedSlots.add(name);
+          added++;
+        }
+      }
+    }
+  } while (added > 0);
+  return usedSlots;
 }
 
 
@@ -70,7 +107,7 @@ function getMergedMountsForPage(cPath) {
 
   const templatePath = resolveTemplatePath(cPath, meta);
   const templateSource = templatePath && fs.existsSync(templatePath) ? fs.readFileSync(templatePath, 'utf8') : '';
-  const usedSlots = getUsedMountSlots(templateSource, body);
+  const usedSlots = expandUsedSlots(getUsedMountSlots(templateSource, body), getComponentHtml());
   const componentAssetsForPage = getComponentAssetsForSlots(usedSlots);
 
   const { mounts } = extractAssetsAndHtml(body, cPath);
@@ -144,7 +181,7 @@ function processPageFile(cPath, meta, body, resolvedFileBundles) {
 
   const templateSource = fs.readFileSync(templatePath, 'utf8');
   const { mounts: pageMounts, html } = extractAssetsAndHtml(body, cPath);
-  const usedSlots = getUsedMountSlots(templateSource, body);
+  const usedSlots = expandUsedSlots(getUsedMountSlots(templateSource, body), getComponentHtml());
   const componentAssetsForPage = getComponentAssetsForSlots(usedSlots);
   const COMPONENT_HTML = getComponentHtml();
 
