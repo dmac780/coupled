@@ -208,7 +208,8 @@ function resolveFileBundles(allStyles, allScripts) {
       }
       const dest = definedDests.length === 1 ? definedDests[0] : undefined;
       const minify = tag === 'style' ? minifyCSS : minifyJS;
-      const content = items.map((i) => i.content).map(minify).join('');
+      const sep = tag === 'script' ? ';' : '';
+      const content = items.map((i) => i.content).map(minify).join(sep);
       if (!content.trim()) continue;
       let outPathRel;
       let outPathAbs;
