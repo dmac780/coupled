@@ -186,9 +186,34 @@ function resolveFileBundles(allStyles, allScripts) {
   }
   const resolved = {};
 
+  /**
+   * De-duplicate repeated bundle entries while preserving order.
+   * This prevents shared component assets from being added once per page.
+   * @param {Array} items - Bundle items.
+   * @returns {Array} - Unique bundle items.
+   */
+  function dedupeBundleItems(items) {
+    const seen = new Set();
+    const out = [];
+    for (const item of items) {
+      const key = [
+        item.sourcePath || '',
+        item.serve || '',
+        item.destination || '',
+        item.hydrate || '',
+        item.content || ''
+      ].join('\u0001');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+    }
+    return out;
+  }
+
   function resolveBundle(tag, byBundle, ext) {
-    for (const [bundleKey, items] of Object.entries(byBundle)) {
+    for (const [bundleKey, rawItems] of Object.entries(byBundle)) {
       if (bundleKey === '\0none') continue;
+      const items = dedupeBundleItems(rawItems);
       const serves = [...new Set(items.map((i) => i.serve))];
       if (serves.length > 1) {
         const sources = [...new Set(items.map((i) => i.sourcePath).filter(Boolean))];
